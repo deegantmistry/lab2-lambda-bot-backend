@@ -1,0 +1,9 @@
+{
+    "applicationNumber": "2",
+    "status": "queued",
+    "details": {
+        "last name": "Bond",
+        "first name": "James",
+        "income": 999000
+    }
+}

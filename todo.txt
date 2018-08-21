@@ -1,0 +1,7 @@
+TO DO:
+1. create signed URL for s3 bucket and send to Mike/Jeff
+2. Give sample commands to attach credit reports - simluate this.
+3. come up with use cases
+4. create video and ppt.
+5. Simulate target value in the ML dataset
+6. Use cases of conversational bot for the form builder. 
