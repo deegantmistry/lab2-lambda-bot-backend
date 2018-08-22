@@ -17,8 +17,9 @@ credentials = session_var.get_credentials()
 
 """ --- Parameters --- """
 # DynamoDB tables, read lambda function environment variables or initialize with defaults if they not exist.
-DYNAMODB_PRODUCT_TABLE = os.getenv('DYNAMODB_PRODUCT_TABLE', default='myApplications')
-DYNAMODB_ORDER_TABLE = os.getenv('DYNAMODB_ORDER_TABLE', default='myOrders')
+DYNAMODB_APPLICATIONS_TABLE = os.getenv('DYNAMODB_PRODUCT_TABLE', default='applications')
+DYNAMODB_PEERS_TABLE = os.getenv('DYNAMODB_ORDER_TABLE', default='peers')
+DYNAMODB_SMALLTALK_TABLE = os.getenv('DYNAMODB_ORDER_TABLE', default='smallTalk')
 
 # Initialize DynamoDB Client
 dynamodb = boto3.client('dynamodb')
@@ -105,96 +106,6 @@ def build_validation_result(is_valid, violated_slot, message_content):
 
 """ --- Functions that interact with other services (backend functions) --- """
 
-def get_product_types():
-    """
-    Called to get a list of available products.
-    """
-    productTypes = ['ice cream','frozen yogurt']
-
-    return productTypes
-
-
-def get_product_flavors(productType):
-    """
-    Called to get a list of flavors for a specific product.
-    """
-    productTypeFlavors = dynamodb.query(
-        TableName=DYNAMODB_PRODUCT_TABLE,
-        IndexName='productType-productFlavor-index',
-        KeyConditionExpression='productType = :productTypeSel',
-        ExpressionAttributeValues={
-            ':productTypeSel' : {
-                "S":productType
-            }
-        }
-    )
-    logger.debug('Available {} flavors: {}'.format(productType,json.dumps(productTypeFlavors)))
-    productFlavors = []
-    for productFlavor in productTypeFlavors['Items']:
-        productFlavors += [str(productFlavor['productFlavor']['S']).lower()]
-
-    return productFlavors
-
-
-def get_product_id(productType,productFlavor):
-    """
-    Called to read the productId from DynamoDB refering to a specific flavor of a product.
-    """
-    productDetails = dynamodb.query(
-        TableName=DYNAMODB_PRODUCT_TABLE,
-        IndexName='productType-productFlavor-index',
-        KeyConditionExpression='productType = :productTypeSel AND productFlavor = :productFlavorSel',
-        ExpressionAttributeValues={
-            ':productTypeSel' : {
-                "S":productType
-            },
-            ':productFlavorSel' : {
-                "S":productFlavor
-            }
-        }
-    )
-
-    if len(productDetails['Items']) != 0:
-        productId = parse_int(productDetails['Items'][0]['productId']['N'])
-        return productId
-
-    return None
-
-
-def validate_product_type(productType):
-    """
-    Called to validate the productType slot.
-    """
-    if productType is not None:
-        productTypes = get_product_types()
-
-        if productType.lower() not in productTypes:
-            productTypesList = convert_string_array_to_string(productTypes)
-
-            return build_validation_result(False,
-                                       'productType',
-                                       'We do not have {}, please select one of the following products. We offer:  '
-                                       '{}'.format(productType, productTypesList))
-
-    return build_validation_result(True, None, None)
-
-
-def validate_product_flavor(productType, productFlavor):
-    """
-    Called to validate the productFlavor slot.
-    """
-    if productFlavor is not None:
-        productFlavors = get_product_flavors(productType)
-
-        if productFlavor.lower() not in productFlavors:
-            productFlavorsList = convert_string_array_to_string(productFlavors)
-
-            return build_validation_result(False,
-                                       'productFlavor',
-                                       'We do not have {} {}, please select one of the following {} flavors.  '
-                                       '{}'.format(productFlavor, productType, productType, productFlavorsList))
-
-    return build_validation_result(True, None, None)
 
 def validate_applicationNumber(applicationNumber):
     """
@@ -253,37 +164,6 @@ def validate_peer(peerFirstName, peerLastName):
             'peerFirstName',
             'Sorry, I could not find anyone with first name {} (whose last name is {}) in the list of your peers. Could you please tell another first name?'.format(peerFirstName,peerLastName))
 
-def placeOrder(userId,productId,orderQuantity):
-    """
-    Called when the user confirms to place an order within the OrderProduct intent.
-    """
-    #Generate order id
-    orderId = uuid.uuid4()
-
-    logger.debug('orderId: {}, userId: {}, productId: {}, orderQuantity: {}'.format(orderId,userId,productId,orderQuantity))
-
-    #Put order in DynamoDB
-    dynamodb.put_item(
-        TableName=DYNAMODB_ORDER_TABLE,
-        Item={
-            'orderId':{
-                'S': str(orderId)
-            },
-            'userId':{
-                'S': str(userId)
-            },
-            'productId':{
-                'N': str(productId)
-            },
-            'orderQuantity':{
-                'N': str(orderQuantity)
-            }
-        },
-    )
-
-    return orderId
-
-
 """ --- Functions that control the bot's behavior (bot intent handler) --- """
 
 def getApplicationInfo(intent_request):
@@ -294,25 +174,21 @@ def getApplicationInfo(intent_request):
     source = intent_request['invocationSource']
     slots = get_slots(intent_request)
 
-    #Slot validation
-    # if source == 'DialogCodeHook':
-    #     productTypeVal = validate_product_type(slots['productType'])
-    #     if not productTypeVal['isValid']:
-    #         slots[productTypeVal['violatedSlot']] = None
-
-    #         return elicit_slot(intent_request['sessionAttributes'],
-    #                            intent_request['currentIntent']['name'],
-    #                            slots,
-    #                            productTypeVal['violatedSlot'],
-    #                            productTypeVal['message'])
-
-    #     output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-    #     return delegate(output_session_attributes, get_slots(intent_request))
-
-    #Intent fulfillment
-    # productFlavorsList = convert_string_array_to_string(get_product_flavors(slots['productType']))
     applicationNumber = slots['applicationNumber']
     queryKey = slots['queryKey']
+    applicationNumberVal = validate_applicationNumber(applicationNumber)
+    if not applicationNumberVal['isValid']:
+        slots[applicationNumberVal['violatedSlot']] = None
+
+        return elicit_slot(intent_request['sessionAttributes'],
+                            intent_request['currentIntent']['name'],
+                            slots,
+                            applicationNumberVal['violatedSlot'],
+                            applicationNumberVal['message'])
+
+        output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+        return delegate(output_session_attributes, get_slots(intent_request))
+
     queryKeyValue = applicationsRead.getDetails(applicationNumber,queryKey)
 
     if queryKeyValue is not None:
@@ -325,76 +201,6 @@ def getApplicationInfo(intent_request):
                     'Fulfilled',
                     {'contentType': 'PlainText',
                     'content': 'Sorry, I could not find {} for application number {}.'.format(queryKey,applicationNumber)})
-
-def i_order_product(intent_request):
-    """
-    Called when the user triggers the OrderProduct intent.
-    """
-    source = intent_request['invocationSource']
-
-    slots = get_slots(intent_request)
-    userId = intent_request['userId'] if intent_request['userId'] is not None else '0'
-
-	#Slot validation
-    if source == 'DialogCodeHook':
-        if slots['productType'] is None and slots['productFlavor'] is not None:
-            slots['productType'] = slots['productFlavor']
-
-        productTypeVal = validate_product_type(slots['productType'])
-        if not productTypeVal['isValid']:
-            slots[productTypeVal['violatedSlot']] = None
-
-            return elicit_slot(intent_request['sessionAttributes'],
-                               intent_request['currentIntent']['name'],
-                               slots,
-                               productTypeVal['violatedSlot'],
-                               productTypeVal['message'])
-
-        if slots['productType'] is not None:
-            productFlavorVal = validate_product_flavor(slots['productType'],slots['productFlavor'])
-            if not productFlavorVal['isValid']:
-                slots[productFlavorVal['violatedSlot']] = None
-
-                return elicit_slot(intent_request['sessionAttributes'],
-                                intent_request['currentIntent']['name'],
-                                slots,
-                                productFlavorVal['violatedSlot'],
-                                productFlavorVal['message'])
-
-        orderQuantityVal = validate_order_quantity(slots['orderQuantity'])
-        if not orderQuantityVal['isValid']:
-            slots[orderQuantityVal['violatedSlot']] = None
-
-            return elicit_slot(intent_request['sessionAttributes'],
-                               intent_request['currentIntent']['name'],
-                               slots,
-                               orderQuantityVal['violatedSlot'],
-                               orderQuantityVal['message'])
-
-        output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
-        return delegate(output_session_attributes, get_slots(intent_request))
-
-	#Intent fulfillment - Place order and confirm back to Lex
-
-    #get productId from DynamoDB product table
-    productId = get_product_id(slots['productType'],slots['productFlavor'])
-
-    if productId is None:
-        return close(intent_request['sessionAttributes'],
-            'Fulfilled',
-            {'contentType': 'PlainText',
-            'content': 'Sorry your order of {} cups of {} {} has not been placed due to a system error. ' \
-            'Please try it again later or contact us via info@reInvent.bootcamp.'.format(slots['orderQuantity'], slots['productFlavor'], slots['productType'])})
-
-    #place order into DynamoDB order table and receive orderId in exchange
-    orderId = placeOrder(userId, productId, slots['orderQuantity'])
-
-    return close(intent_request['sessionAttributes'],
-                 'Fulfilled',
-                 {'contentType': 'PlainText',
-                  'content': 'Thank you for ordering through reInvent bootcamp bot. ' \
-                  'You order of {} cups of {} {} has been placed and will be processed ' \
-                  'immediately (Order ID: {}). Can I help you with anything else?'.format(slots['orderQuantity'], slots['productFlavor'], slots['productType'], orderId)})
 
 
 def i_help(intent_request):
@@ -438,6 +244,19 @@ def sendForPeerReview(intent_request):
     peer = {}
     peer['firstName'] = slots['peerFirstName'].capitalize()
     peer['lastName'] = slots['peerLastName'].capitalize()
+
+    applicationNumberVal = validate_applicationNumber(applicationNumber)
+    if not applicationNumberVal['isValid']:
+        slots[applicationNumberVal['violatedSlot']] = None
+
+        return elicit_slot(intent_request['sessionAttributes'],
+                            intent_request['currentIntent']['name'],
+                            slots,
+                            applicationNumberVal['violatedSlot'],
+                            applicationNumberVal['message'])
+
+        output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+        return delegate(output_session_attributes, get_slots(intent_request))
 
     peerVal = validate_peer(peer['firstName'],peer['lastName'])
     if not peerVal['isValid']:
@@ -495,7 +314,6 @@ def evaluateAbilityToRepayScore(intent_request):
 
     #Intent fulfillment
     slots = get_slots(intent_request)
-    source = intent_request['invocationSource']
 
     applicationNumber = slots['applicationNumber']
     applicationNumberVal = validate_applicationNumber(applicationNumber)
