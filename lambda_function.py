@@ -6,6 +6,7 @@ import boto3
 import uuid
 import smallTalkRead
 import applicationsRead
+import predict
 
 # Configure logger
 logger = logging.getLogger()
@@ -329,10 +330,12 @@ def evaluateAbilityToRepayScore(intent_request):
         output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
         return delegate(output_session_attributes, get_slots(intent_request))
 
+    predictionResponse = predict.predict(applicationNumber)
+
     return close(intent_request['sessionAttributes'],
         'Fulfilled',
         {'contentType': 'PlainText',
-        'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of 7.9.'.format(applicationNumber)})
+        'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of {}.'.format(applicationNumber,predictionResponse['Prediction']['predictedScores'])})
 
 
     # application = applicationsRead.getDetails(applicationNumber,'pullUpEverything')
