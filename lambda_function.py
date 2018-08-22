@@ -335,7 +335,7 @@ def evaluateAbilityToRepayScore(intent_request):
     return close(intent_request['sessionAttributes'],
         'Fulfilled',
         {'contentType': 'PlainText',
-        'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of {}.'.format(applicationNumber,predictionResponse['Prediction']['predictedScores'])})
+        'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of {}.'.format(applicationNumber,predictionResponse['Prediction']['predictedValue'],predictionResponse['Prediction']['details']['PredictiveModelType'],predictionResponse['Prediction']['details']['Algorithm'])})
 
 
     # application = applicationsRead.getDetails(applicationNumber,'pullUpEverything')

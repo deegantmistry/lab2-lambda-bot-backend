@@ -62,7 +62,7 @@ def predict(applicationNumber):
         "positive_invtmts"          : applicationFound['Items'][0]['details']['M']['positive_invtmts']['N'],
         "recent_fraud_claims"       : applicationFound['Items'][0]['details']['M']['recent_fraud_claims']['N'],
         "criminal_hist"             : applicationFound['Items'][0]['details']['M']['criminal_hist']['N'],
-        "contact"                   : applicationFound['Items'][0]['details']['M']['contact']['S'],
+        "dmv_bad_rec"               : applicationFound['Items'][0]['details']['M']['dmv_bad_rec']['N'],
     }
 
     predictionResponse = ml.predict(
