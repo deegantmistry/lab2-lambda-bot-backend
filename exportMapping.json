@@ -1,0 +1,17 @@
+{
+    "fields": {
+        "First Name": "firstName",
+        "Last Name": "lastName",
+        "Social Security Number": "ssn",
+        "Dependents": "dependents",
+        "Marital Status": "marital",
+        "Years of School": "education",
+        "Street": "street",
+        "City": "city",
+        "State": "state",
+        "County": "county",
+        "Postal/Zip Code": "zip",
+        "Employer Name": "company",
+        "Years in this Profession": "exp"
+    }
+}

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Create a dynamoDB table
 """
@@ -8,16 +9,24 @@ import boto3
 dynamodb = boto3.resource('dynamodb')
 
 table = dynamodb.create_table(
-    TableName='applications',
+    TableName='peers',
     KeySchema=[
         {
-            'AttributeName': 'applicationNumber',
+            'AttributeName': 'peerId',
             'KeyType': 'HASH'  #Partition key
+        },
+        {
+            'AttributeName': 'lastName',
+            'KeyType': 'RANGE'  #Sort key
         }
     ],
     AttributeDefinitions=[
         {
-            'AttributeName': 'applicationNumber',
+            'AttributeName': 'peerId',
+            'AttributeType': 'N'
+        },
+        {
+            'AttributeName': 'lastName',
             'AttributeType': 'S'
         }
     ],

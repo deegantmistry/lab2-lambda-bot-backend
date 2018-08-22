@@ -1,0 +1,65 @@
+[
+    {
+        "peerId" : 1,
+        "lastName" : "Bond",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "James",
+            "lastName" : "Bond"
+        }
+    },
+    {
+        "peerId" : 2,
+        "lastName" : "Hunt",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "Hunt",
+            "lastName" : "Ethan"
+        }
+    },
+    {
+        "peerId" : 3,
+        "lastName" : "Croft",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "Lara",
+            "lastName" : "Croft"
+        }
+    },
+    {
+        "peerId" : 4,
+        "lastName" : "Wick",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "John",
+            "lastName" : "Wick"
+        }
+    },
+    {
+        "peerId" : 5,
+        "lastName" : "McClane",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "John",
+            "lastName" : "McClane"
+        }
+    },
+    {
+        "peerId" : 6,
+        "lastName" : "Jones",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "Indiana",
+            "lastName" : "Jones"
+        }
+    },
+    {
+        "peerId" : 7,
+        "lastName" : "Wayne",
+        "details": {
+            "email": "m.deegant@gmail.com",
+            "firstName": "Bruce",
+            "lastName" : "Wayne"
+        }
+    }
+]

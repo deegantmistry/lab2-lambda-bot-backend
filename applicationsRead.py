@@ -31,7 +31,9 @@ def getDetails(applicationNumber, queryKey):
         item = response['Item']
         print("GetItem succeeded:")
         print(json.dumps(item, indent=4, cls=DecimalEncoder))
-        if queryKey in item:
+        if queryKey == 'pullUpEverything':
+            return item
+        elif queryKey in item:
             return item[queryKey]
         elif ('details' in item) and (queryKey in item['details']):
             return item['details'][queryKey]

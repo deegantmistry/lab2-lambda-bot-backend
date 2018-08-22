@@ -196,25 +196,62 @@ def validate_product_flavor(productType, productFlavor):
 
     return build_validation_result(True, None, None)
 
-
-def validate_order_quantity(orderQuantity):
+def validate_applicationNumber(applicationNumber):
     """
-    Called to validate the orderQuantity slot.
+    Called to validate the applicationNumber.
     """
-    logger.debug('Quantity: {}'.format(orderQuantity))
-    if orderQuantity is not None:
-        if parse_int(orderQuantity) < 5:
-            return build_validation_result(False,
-                        'orderQuantity',
-                        'Sorry but the minimum order quantity is 5 cups. How many would you like to order?')
+    logger.debug('Provided applicationNumber: {}'.format(applicationNumber))
 
-        elif parse_int(orderQuantity) > 30:
-            return build_validation_result(False,
-                        'orderQuantity',
-                        'Sorry but the maximum order quantity for online orders is 30. Please contact us directly for larger quantity orders. How many cups would you like to order instead?')
+    applicationFound = dynamodb.query(
+        TableName='applications',
+        IndexName='applicationNumber-index',
+        KeyConditionExpression='applicationNumber = :applicationNumber',
+        ExpressionAttributeValues={
+            ':applicationNumber' : {
+                "S":applicationNumber
+            }
+        }
+    )
+
+    if len(applicationFound['Items']) == 0:
+        return build_validation_result(False,
+        'applicationNumber',
+        'Sorry, I could not find application number {} in the database. Could you please try another application number?'.format(applicationNumber))
 
     return build_validation_result(True, None, None)
 
+
+def validate_peer(peerFirstName, peerLastName):
+    """
+    Called to validate the peer name.
+    """
+    logger.debug('Provided peerFirstName: {}'.format(peerFirstName))
+    logger.debug('Provided peerLastName: {}'.format(peerLastName))
+
+    peersFoundWithLastName = dynamodb.query(
+        TableName='peers',
+        IndexName='lastName-index',
+        KeyConditionExpression='lastName = :lastName',
+        ExpressionAttributeValues={
+            ':lastName' : {
+                "S":peerLastName
+            }
+        }
+    )
+
+    if len(peersFoundWithLastName['Items']) == 0:
+             return build_validation_result(False,
+                'peerLastName',
+                'Sorry, I could not find anyone with last name {} in the list of your peers. Could you please tell another last name?'.format(peerLastName))
+
+    elif len(peersFoundWithLastName['Items']) > 0 :
+        for peer in peersFoundWithLastName['Items']:
+            if peer['details']['M']['firstName']['S'] == peerFirstName:
+                return build_validation_result(True, None, None)
+
+        return build_validation_result(False,
+            'peerFirstName',
+            'Sorry, I could not find anyone with first name {} (whose last name is {}) in the list of your peers. Could you please tell another first name?'.format(peerFirstName,peerLastName))
 
 def placeOrder(userId,productId,orderQuantity):
     """
@@ -370,9 +407,10 @@ def i_help(intent_request):
                  'Fulfilled',
                  {'contentType': 'PlainText',
                   'content': "Hi this is Cool Bot, your personal assistant. " \
-                             "- Would you like to pull up information for a mortgage application? " \
-                             "- or should I show you a list of available attributes that you can query for"\
-                             " one of the applications?"})
+                             "- You can ask me any details about an application. " \
+                             "Or you could ask me to evaluate ability-to-replay. You could also "\
+                             " ask me to send a particular mortgage application for a peer review."\
+                             " Anything you need...I'm here to help." })
 
 def showQueryAttributes(intent_request):
     """
@@ -386,6 +424,52 @@ def showQueryAttributes(intent_request):
                   'content': "Very well, " \
                              "these are the attributes you can query for a particular application: "  \
                              "- job title, company, income, evaluation status, ability to repay, assets, monthly expenditure, credit history."})
+
+def sendForPeerReview(intent_request):
+    """
+    Called when the user triggers the peerReview intent
+    """
+
+    #Intent fulfillment
+    slots = get_slots(intent_request)
+    source = intent_request['invocationSource']
+
+    applicationNumber = slots['applicationNumber']
+    peer = {}
+    peer['firstName'] = slots['peerFirstName'].capitalize()
+    peer['lastName'] = slots['peerLastName'].capitalize()
+
+    peerVal = validate_peer(peer['firstName'],peer['lastName'])
+    if not peerVal['isValid']:
+        slots[peerVal['violatedSlot']] = None
+
+        return elicit_slot(intent_request['sessionAttributes'],
+                            intent_request['currentIntent']['name'],
+                            slots,
+                            peerVal['violatedSlot'],
+                            peerVal['message'])
+
+        output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+        return delegate(output_session_attributes, get_slots(intent_request))
+
+    application = applicationsRead.getDetails(applicationNumber,'pullUpEverything')
+
+    if ('y' in application['details']) and (application['details']['y'] is not None):
+        return close(intent_request['sessionAttributes'],
+                    'Fulfilled',
+                    {'contentType': 'PlainText',
+                    'content': 'Done! I\'ve sent application number {} to your colleague {} for a review.'.format(applicationNumber,peer['firstName'])})
+    elif ('y' not in application['details']):
+        return close(intent_request['sessionAttributes'],
+                    'Fulfilled',
+                    {'contentType': 'PlainText',
+                    'content': 'Application number {} does not seem to be evaluated for a risk score yet. Are you sure you want to send it to your colleague {} for a review?'.format(applicationNumber,peer['firstName'])})
+    else:
+        return close(intent_request['sessionAttributes'],
+                    'Fulfilled',
+                    {'contentType': 'PlainText',
+                    'content': 'Sorry, I could not send application {} to {}.'.format(applicationNumber,peer['firstName'])})
+
 
 def i_smallTalk(intent_request):
     """
@@ -403,6 +487,53 @@ def i_smallTalk(intent_request):
                   'content': responseAnswer
                  }
             )
+
+def evaluateAbilityToRepayScore(intent_request):
+    """
+    Called when the user triggers the evaluateAbilityToRepayScore intent
+    """
+
+    #Intent fulfillment
+    slots = get_slots(intent_request)
+    source = intent_request['invocationSource']
+
+    applicationNumber = slots['applicationNumber']
+    applicationNumberVal = validate_applicationNumber(applicationNumber)
+    if not applicationNumberVal['isValid']:
+        slots[applicationNumberVal['violatedSlot']] = None
+
+        return elicit_slot(intent_request['sessionAttributes'],
+                            intent_request['currentIntent']['name'],
+                            slots,
+                            applicationNumberVal['violatedSlot'],
+                            applicationNumberVal['message'])
+
+        output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+        return delegate(output_session_attributes, get_slots(intent_request))
+
+    return close(intent_request['sessionAttributes'],
+        'Fulfilled',
+        {'contentType': 'PlainText',
+        'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of 7.9.'.format(applicationNumber)})
+
+
+    # application = applicationsRead.getDetails(applicationNumber,'pullUpEverything')
+
+    # if ('y' in application['details']) and (application['details']['y'] is not None):
+    #     return close(intent_request['sessionAttributes'],
+    #                 'Fulfilled',
+    #                 {'contentType': 'PlainText',
+    #                 'content': 'Done! I\'ve sent application number {} to your colleague {} for a review.'.format(applicationNumber,peer['firstName'])})
+    # elif ('y' not in application['details']):
+    #     return close(intent_request['sessionAttributes'],
+    #                 'Fulfilled',
+    #                 {'contentType': 'PlainText',
+    #                 'content': 'Application number {} does not seem to be evaluated for a risk score yet. Are you sure you want to send it to your colleague {} for a review?'.format(applicationNumber,peer['firstName'])})
+    # else:
+    #     return close(intent_request['sessionAttributes'],
+    #                 'Fulfilled',
+    #                 {'contentType': 'PlainText',
+    #                 'content': 'Sorry, I could not send application {} to {}.'.format(applicationNumber,peer['firstName'])})
 
 
 """ --- Dispatch intents --- """
@@ -423,8 +554,12 @@ def dispatch(intent_request):
     #     return i_order_product(intent_request)
     elif intent_name == 'showQueryAttributes':
         return showQueryAttributes(intent_request)
+    elif intent_name == 'peerReview':
+        return sendForPeerReview(intent_request)
     elif intent_name == 'smallTalk':
         return i_smallTalk(intent_request)
+    elif intent_name == 'evaluateAbilityToRepayScore':
+        return evaluateAbilityToRepayScore(intent_request)
     elif intent_name == 'Help':
         return i_help(intent_request)
 
