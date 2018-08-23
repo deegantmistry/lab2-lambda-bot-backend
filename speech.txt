@@ -6,4 +6,4 @@ Once the form is submitted, the data will be exported as a Json and uploaded to 
 The sample dataset contains attributes from the form in addition to simulated attributes like income, assets, properties owned, investments, criminal, health and driving history.
 
 the loan officer can use this score to determine whether the loan should be approved or denied. 
-<lex bot video
+<lex bot video>
