@@ -1,0 +1,9 @@
+Intro: 
+
+<architecture slide>
+Once the form is submitted, the data will be exported as a Json and uploaded to our s3 bucket, which triggers a Lambda function that will parse the json and ingest data to dynamoDB. From here, the loan officer can ask the Lex bot to evaluate ability to repay score. the lex bot will trigger another lambda function which will query dynamoDB to get the data for the applicant and call the Machine Learning endpoint, whcih will use the regression model type and SGD algorithm to score the applicant. this score is predicted based on the sample dataset containing 45,000 entries, which was used to train the model to predict outcomes. 
+
+The sample dataset contains attributes from the form in addition to simulated attributes like income, assets, properties owned, investments, criminal, health and driving history.
+
+the loan officer can use this score to determine whether the loan should be approved or denied. 
+<lex bot video>
