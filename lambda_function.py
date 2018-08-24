@@ -338,25 +338,6 @@ def evaluateAbilityToRepayScore(intent_request):
         'content': 'Done! I\'ve analyzed application {} and predicted the ability to repay score of {}.'.format(applicationNumber,predictionResponse['Prediction']['predictedValue'],predictionResponse['Prediction']['details']['PredictiveModelType'],predictionResponse['Prediction']['details']['Algorithm'])})
 
 
-    # application = applicationsRead.getDetails(applicationNumber,'pullUpEverything')
-
-    # if ('y' in application['details']) and (application['details']['y'] is not None):
-    #     return close(intent_request['sessionAttributes'],
-    #                 'Fulfilled',
-    #                 {'contentType': 'PlainText',
-    #                 'content': 'Done! I\'ve sent application number {} to your colleague {} for a review.'.format(applicationNumber,peer['firstName'])})
-    # elif ('y' not in application['details']):
-    #     return close(intent_request['sessionAttributes'],
-    #                 'Fulfilled',
-    #                 {'contentType': 'PlainText',
-    #                 'content': 'Application number {} does not seem to be evaluated for a risk score yet. Are you sure you want to send it to your colleague {} for a review?'.format(applicationNumber,peer['firstName'])})
-    # else:
-    #     return close(intent_request['sessionAttributes'],
-    #                 'Fulfilled',
-    #                 {'contentType': 'PlainText',
-    #                 'content': 'Sorry, I could not send application {} to {}.'.format(applicationNumber,peer['firstName'])})
-
-
 """ --- Dispatch intents --- """
 
 def dispatch(intent_request):
@@ -371,8 +352,6 @@ def dispatch(intent_request):
     # Dispatch to your bot's intent handlers
     if intent_name == 'getApplicationInfo':
          return getApplicationInfo(intent_request)
-    # elif intent_name == 'OrderProduct':
-    #     return i_order_product(intent_request)
     elif intent_name == 'showQueryAttributes':
         return showQueryAttributes(intent_request)
     elif intent_name == 'peerReview':
